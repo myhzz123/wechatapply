@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目演示 - 淘好物</title>
+    <style>
+        :root { --primary-color: #07c160; --border-color: #333; --red-color: #f44336; }
+        body { margin: 0; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: "PingFang SC", sans-serif; }
+        
+        /* 手机外壳 */
+        .phone-mockup {
+            width: 375px; height: 667px; background: #fff; border: 10px solid #222; border-radius: 40px;
+            position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.3); overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        .page-content { display: none; flex: 1; overflow-y: auto; box-sizing: border-box; padding-bottom: 70px; position: relative; }
+        .page-content.active { display: block; }
+        .page-content::-webkit-scrollbar { display: none; }
+
+        /* 公用页头 */
+        .page-header { 
+            padding: 20px 16px 10px; 
+            display: flex; 
+            align-items: center; 
+            background: #fff; 
+            justify-content: space-between; 
+            border-bottom: 1px solid #eee;
+        }
+        .header-left-group { display: flex; align-items: center; }
+        .logo-box { width: 35px; height: 35px; border: 2px solid var(--border-color); margin-right: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; }
+
+        /* --- 列表样式 --- */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 16px; margin-top: 15px; }
+        .grid-item { 
+            border: 2px solid var(--border-color); 
+            border-radius: 8px; 
+            background: #fff; 
+            cursor: pointer; 
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+        }
+        .item-img { 
+            width: 100%; 
+            aspect-ratio: 1; 
+            background: #f9f9f9; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 12px; 
+            color: #999;
+            border-bottom: 1px solid #eee;
+            position: relative;
+        }
+        .item-label { 
+            position: absolute; top: 0; left: 0; background: var(--border-color); color: #fff; 
+            font-size: 10px; padding: 2px 6px; border-radius: 0 0 8px 0; z-index: 2; 
+        }
+        .item-info { padding: 8px; }
+        .item-title { font-size: 13px; font-weight: bold; color: #333; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .item-price { font-size: 14px; color: var(--red-color); font-weight: bold; }
+
+        .search-filter-row { display: flex; padding: 0 16px; gap: 10px; margin-bottom: 15px; margin-top: 10px; position: relative; }
+        .search-bar { flex: 1; height: 36px; border: 2px solid var(--border-color); border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-size: 13px; color: #666; }
+        .filter-btn { width: 60px; height: 36px; border: 2px solid var(--border-color); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; }
+
+        .filter-menu { display: none; position: absolute; top: 40px; right: 16px; width: 120px; background: white; border: 2px solid var(--border-color); border-radius: 8px; z-index: 100; }
+        .filter-menu.show { display: block; }
+        .filter-item { padding: 10px; font-size: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+
+        /* --- 商品详情页专用样式 --- */
+        .detail-gallery { display: flex; gap: 10px; padding: 15px; overflow-x: auto; background: #fff; }
+        .gallery-item { min-width: 200px; height: 200px; border: 2px solid var(--border-color); border-radius: 8px; background: #f9f9f9; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px; }
+        
+        .detail-info { padding: 16px; background: #fff; margin-bottom: 10px; }
+        .detail-price { font-size: 26px; color: var(--red-color); font-weight: bold; margin-bottom: 5px; }
+        .detail-title { font-size: 16px; font-weight: bold; margin-bottom: 10px; line-height: 1.4; }
+        .detail-card { border: 1.5px solid var(--border-color); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.6; color: #444; }
+
+        .detail-user { display: flex; align-items: center; padding: 12px 16px; background: #fff; margin-bottom: 10px; border-top: 1px solid #f0f0f0; }
+        .avatar-sm { width: 40px; height: 40px; border: 2px solid var(--border-color); border-radius: 50%; margin-right: 12px; background: #eee; }
+        .user-tag { font-size: 10px; color: var(--primary-color); border: 1px solid var(--primary-color); padding: 1px 4px; border-radius: 4px; margin-left: 8px; }
+
+        .comment-box { padding: 16px; background: #fff; }
+        .comment-mock-input { width: 100%; height: 40px; border: 2px solid var(--border-color); border-radius: 20px; background: #f5f5f5; display: flex; align-items: center; padding: 0 15px; color: #999; font-size: 13px; box-sizing: border-box; }
+
+        /* 详情页底部操作栏 */
+        .detail-footer { position: absolute; bottom: 0; width: 100%; height: 60px; background: #fff; border-top: 1px solid #eee; display: flex; align-items: center; padding: 0 16px; box-sizing: border-box; gap: 15px; }
+        .footer-icon-btn { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 45px; }
+        .icon-heart { font-size: 20px; color: #ccc; transition: 0.3s; }
+        .footer-icon-btn.active .icon-heart { color: var(--red-color); }
+        .footer-icon-btn.active .icon-label { color: var(--red-color); }
+        .icon-label { font-size: 10px; color: #666; margin-top: 2px; }
+        .buy-btn { flex: 1; height: 42px; background: var(--border-color); color: #fff; border-radius: 21px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; }
+
+        /* --- 发布页面样式 --- */
+        .publish-main { padding: 16px; }
+        .category-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        .cat-chip { padding: 5px 12px; border: 1.5px solid #ddd; border-radius: 20px; font-size: 12px; cursor: pointer; }
+        .cat-chip.active { border-color: var(--border-color); background: #f0f0f0; font-weight: bold; }
+
+        .upload-card { width: 130px; height: 130px; border: 2px dashed var(--border-color); border-radius: 8px; background: #f9f9f9; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666; margin-bottom: 10px; }
+        .mode-switch { display: flex; justify-content: center; gap: 30px; margin: 15px 0; }
+        .mode-btn { padding: 5px 20px; border: 2px solid var(--border-color); border-radius: 4px; cursor: pointer; }
+        .mode-btn.active { background: var(--border-color); color: #fff; }
+        .desc-area { width: 100%; height: 100px; border: 2px solid var(--border-color); border-radius: 8px; padding: 10px; box-sizing: border-box; margin-bottom: 15px; font-size: 14px; outline: none; }
+        .form-box { border: 2px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+        .form-row { padding: 12px 15px; background: #fff; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 14px; }
+        .price-text { color: #f44336; font-weight: bold; }
+        .sale-mode .rent-only { display: none; }
+
+        /* --- 用户页 --- */
+        .user-bg { background: linear-gradient(180deg, #f7f7f7 0%, #fff 100%); height: 100%; padding: 0 16px; }
+        .user-card { background: #fff; border: 2px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 20px; display: flex; align-items: flex-start; }
+        .avatar-box { width: 60px; height: 60px; border: 2px solid var(--border-color); border-radius: 50%; background: #eee; margin-right: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        
+        .user-info-text { flex: 1; }
+        .user-name-wrapper { display: flex; align-items: center; margin-bottom: 6px; }
+        .verified-label { 
+            font-size: 10px; color: var(--primary-color); border: 1px solid var(--primary-color); 
+            padding: 1px 4px; border-radius: 4px; margin-left: 8px; background: #fff; 
+        }
+        .user-detail-info { font-size: 12px; color: #666; line-height: 1.6; }
+
+        .menu-card { background: #fff; border: 2px solid var(--border-color); border-radius: 12px; margin-top: 20px; overflow: hidden; }
+        .menu-row { padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 15px; }
+
+        /* 底部导航 */
+        .tab-bar { position: absolute; bottom: 0; width: 100%; height: 56px; background: #fff; border-top: 2px solid var(--border-color); display: flex; z-index: 99; }
+        .tab-item { flex: 1; text-align: center; line-height: 56px; font-size: 15px; color: #888; cursor: pointer; }
+        .tab-item.active { color: var(--primary-color); font-weight: bold; }
+
+        .add-btn { position: absolute; right: 20px; bottom: 80px; width: 50px; height: 50px; border: 2px solid var(--border-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; background: white; cursor: pointer; z-index: 10; }
+    </style>
+</head>
+<body>
+
+<div class="phone-mockup" onclick="closeFilter(event)">
+    
+    <!-- 首页 -->
+    <div id="home-page" class="page-content active">
+        <div class="page-header">
+            <div class="header-left-group"><div class="logo-box">LOGO</div><span style="font-weight:bold">淘好物</span></div>
+        </div>
+        <div style="padding: 0 16px;">
+            <div style="width:100%; height:130px; border:2px solid #333; margin:10px 0; border-radius:8px; display:flex; align-items:center; justify-content:center; background:#fafafa;">[精彩推荐 Banner]</div>
+            <div style="text-align:center; font-size:12px; color:#999; margin:15px 0;">—— 猜你喜欢 ——</div>
+            <div class="grid" style="padding:0;">
+                <div class="grid-item" onclick="switchPage('detail')">
+                    <div class="item-img"><span class="item-label">书籍</span>[商品图片]</div>
+                    <div class="item-info">
+                        <div class="item-title">考研英语辅导书</div>
+                        <div class="item-price">¥ 25.0</div>
+                    </div>
+                </div>
+                <div class="grid-item" onclick="switchPage('detail')">
+                    <div class="item-img"><span class="item-label">笔记</span>[商品图片]</div>
+                    <div class="item-info">
+                        <div class="item-title">期末精选笔记</div>
+                        <div class="item-price">¥ 12.0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 商品列表页 -->
+    <div id="product-page" class="page-content">
+        <div class="page-header">
+            <div class="header-left-group"><div class="logo-box">LOGO</div><span style="font-weight:bold">淘好物</span></div>
+        </div>
+        <div class="search-filter-row">
+            <div class="search-bar">搜索感兴趣的物品... 🔍</div>
+            <div class="filter-btn" onclick="toggleFilter(event)">筛选 ▽</div>
+            <div id="filter-menu" class="filter-menu">
+                <div class="filter-item">按宿舍楼筛选</div>
+                <div class="filter-item">按价格从低到高</div>
+                <div class="filter-item">按物品种类筛选</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="grid-item" onclick="switchPage('detail')">
+                <div class="item-img"><span class="item-label">书籍</span>[书籍图片]</div>
+                <div class="item-info">
+                    <div class="item-title">算法导论 原版</div>
+                    <div class="item-price">¥ 45.0</div>
+                </div>
+            </div>
+            <div class="grid-item" onclick="switchPage('detail')">
+                <div class="item-img"><span class="item-label">数码</span>[数码图片]</div>
+                <div class="item-info">
+                    <div class="item-title">二手机械键盘</div>
+                    <div class="item-price">¥ 88.0</div>
+                </div>
+            </div>
+            <div class="grid-item" onclick="switchPage('detail')">
+                <div class="item-img"><span class="item-label">笔记</span>[笔记图片]</div>
+                <div class="item-info">
+                    <div class="item-title">英语六级听力笔记</div>
+                    <div class="item-price">¥ 8.0</div>
+                </div>
+            </div>
+            <div class="grid-item" onclick="switchPage('detail')">
+                <div class="item-img"><span class="item-label">生活</span>[生活用品图片]</div>
+                <div class="item-info">
+                    <div class="item-title">宿舍用小书桌</div>
+                    <div class="item-price">¥ 15.0</div>
+                </div>
+            </div>
+        </div>
+        <div class="add-btn" onclick="switchPage('publish')">+</div>
+    </div>
+
+    <!-- 商品详情页 -->
+    <div id="detail-page" class="page-content">
+        <div class="page-header">
+            <span onclick="switchPage('product')" style="font-size:14px; color:#999; cursor:pointer"> < 返回 </span>
+            <span style="font-weight:bold">物品详情</span>
+            <span></span>
+        </div>
+        
+        <div class="detail-gallery">
+            <div class="gallery-item">实物展示图 1</div>
+            <div class="gallery-item">实物展示图 2</div>
+        </div>
+
+        <div class="detail-info">
+            <div class="detail-price">¥ 25.00</div>
+            <div class="detail-title">考研英语辅导书</div>
+            <div class="detail-card">
+                九成新，笔记非常详细，包含历年真题总结。长清校区自提优先，也可以约教学楼面交。
+            </div>
+        </div>
+
+        <div class="detail-user">
+            <div class="avatar-sm"></div>
+            <div>
+                <span style="font-weight:bold; font-size:14px;">大二某同学</span>
+                <span class="user-tag">已实名</span>
+            </div>
+        </div>
+
+        <div class="comment-box">
+            <div style="font-size:14px; font-weight:bold; margin-bottom:12px;">留言区 (0)</div>
+            <div class="comment-mock-input">写留言，向卖家提问...</div>
+        </div>
+
+        <div class="detail-footer">
+            <div class="footer-icon-btn" id="collect-btn" onclick="toggleCollect()">
+                <span class="icon-heart">❤</span>
+                <span class="icon-label" id="collect-label">收藏</span>
+            </div>
+            <div class="buy-btn" onclick="alert('即将打开私聊窗口...')">想要 / 咨询</div>
+        </div>
+    </div>
+
+    <!-- 发布页面 -->
+    <div id="publish-page" class="page-content">
+        <div class="page-header">
+            <span onclick="switchPage('product')" style="font-size:14px; color:#999; cursor:pointer">取消</span>
+            <span style="font-weight:bold">发布物品</span>
+            <span onclick="alert('发布成功！'); switchPage('product')" style="font-size:14px; color:var(--primary-color); font-weight:bold; cursor:pointer">发布</span>
+        </div>
+        
+        <div class="publish-main" id="publish-logic-root">
+            <div class="upload-card">(点击可添加图片)</div>
+            
+            <!-- 分类标签选择 -->
+            <div style="font-size:14px; font-weight:bold; margin-bottom:10px;">选择分类</div>
+            <div class="category-grid">
+                <div class="cat-chip active">书籍</div>
+                <div class="cat-chip">笔记</div>
+                <div class="cat-chip">数码</div>
+                <div class="cat-chip">生活</div>
+                <div class="cat-chip">＋</div>
+            </div>
+
+            <div class="mode-switch">
+                <div id="mode-rent" class="mode-btn active" onclick="changePublishMode('rent')">出租</div>
+                <div id="mode-sale" class="mode-btn" onclick="changePublishMode('sale')">售卖</div>
+            </div>
+            <textarea class="desc-area" placeholder="描述一下物品..."></textarea>
+            <div class="form-box">
+                <div class="form-row rent-only"><span>出租时长</span><span style="color:#999">点击设置 ></span></div>
+                <div class="form-row"><span>价格</span><span class="price-text">¥ 0.00</span></div>
+                <div class="form-row"><span>所在位置</span><span style="color:#999">请选择 ></span></div>
+                <div class="form-row rent-only"><span>是否需要押金</span><span style="color:#999">请选择 ></span></div>
+                <div class="form-row"><span>需自提 / 跑腿</span><span style="color:#999">请选择 ></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户页 -->
+    <div id="user-page" class="page-content">
+        <div class="user-bg">
+            <h2 style="margin-top:20px;">个人中心</h2>
+            <div class="user-card">
+                <div class="avatar-box">头像</div>
+                <div class="user-info-text">
+                    <div class="user-name-wrapper">
+                        <span style="font-size:18px; font-weight:bold;">微信用户</span>
+                        <span class="verified-label">已实名</span>
+                    </div>
+                    <div class="user-detail-info">
+                        <div>校区：长清校区</div>
+                        <div>学院：艺管学院</div>
+                        <div>学号：202307145</div>
+                    </div>
+                </div>
+            </div>
+            <div class="menu-card">
+                <div class="menu-row"><span>我的消息</span><span>></span></div>
+                <div class="menu-row"><span>我的订单</span><span>></span></div>
+                <div class="menu-row"><span>我的发布</span><span>></span></div>
+                <div class="menu-row"><span>最近看过</span><span>></span></div>
+                <div class="menu-row"><span>我的收藏</span><span>></span></div>
+                <div class="menu-row"><span>设置选项</span><span>></span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部全局导航 -->
+    <nav class="tab-bar" id="main-tab-bar">
+        <div class="tab-item active" onclick="switchPage('home')">首页</div>
+        <div class="tab-item" onclick="switchPage('product')">商品</div>
+        <div class="tab-item" onclick="switchPage('user')">用户</div>
+    </nav>
+</div>
+
+<script>
+    // 初始化页面显示
+    window.onload = function() {
+        switchPage('home');
+    };
+
+    function switchPage(p) {
+        // 移除所有页面的 active 类
+        document.querySelectorAll('.page-content').forEach(el => el.classList.remove('active'));
+        // 移除所有导航项的 active 类
+        document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+        
+        // 激活当前页面
+        const targetPage = document.getElementById(p + '-page');
+        if (targetPage) targetPage.classList.add('active');
+        
+        // 激活对应的导航项
+        const tabs = document.querySelectorAll('.tab-item');
+        if(p==='home') tabs[0].classList.add('active');
+        if(p==='product') tabs[1].classList.add('active');
+        if(p==='user') tabs[2].classList.add('active');
+
+        // 详情页和发布页隐藏导航栏
+        const shouldHideTab = (p === 'publish' || p === 'detail');
+        document.getElementById('main-tab-bar').style.display = shouldHideTab ? 'none' : 'flex';
+    }
+
+    // 发布页分类切换逻辑
+    document.querySelectorAll('.cat-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    function toggleCollect() {
+        const btn = document.getElementById('collect-btn');
+        const label = document.getElementById('collect-label');
+        btn.classList.toggle('active');
+        label.innerText = btn.classList.contains('active') ? '已收藏' : '收藏';
+    }
+
+    function changePublishMode(mode) {
+        const root = document.getElementById('publish-logic-root');
+        const rentBtn = document.getElementById('mode-rent');
+        const saleBtn = document.getElementById('mode-sale');
+        if(mode === 'sale') {
+            root.classList.add('sale-mode');
+            saleBtn.classList.add('active');
+            rentBtn.classList.remove('active');
+        } else {
+            root.classList.remove('sale-mode');
+            rentBtn.classList.add('active');
+            saleBtn.classList.remove('active');
+        }
+    }
+
+    function toggleFilter(e) {
+        e.stopPropagation();
+        document.getElementById('filter-menu').classList.toggle('show');
+    }
+
+    function closeFilter(e) {
+        document.getElementById('filter-menu').classList.remove('show');
+    }
+</script>
+
+</body>
+</html>
